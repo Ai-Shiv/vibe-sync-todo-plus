@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +6,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from 'date-fns';
-import { Calendar as CalendarIcon, TrendingUp, Heart, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, TrendingUp, Heart, Plus, Edit, Trash2 } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { MoodEntry } from '@/types';
+import MoodEntryForm from './MoodEntryForm';
 
 const moodEmojis = [
   { value: 1, emoji: '😢', label: 'Very Sad' },
@@ -25,6 +25,8 @@ const MoodTab = () => {
   const [moodNote, setMoodNote] = useState('');
   const [viewPeriod, setViewPeriod] = useState<'day' | 'week' | 'month'>('week');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showMoodForm, setShowMoodForm] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<MoodEntry | null>(null);
 
   const addMoodEntry = () => {
     if (selectedMood) {
@@ -38,6 +40,34 @@ const MoodTab = () => {
       setMoodEntries([...moodEntries, newEntry]);
       setSelectedMood(null);
       setMoodNote('');
+    }
+  };
+
+  const saveMoodEntry = (entryData: Omit<MoodEntry, 'id'>) => {
+    if (editingEntry) {
+      // Update existing entry
+      setMoodEntries(entries => 
+        entries.map(entry => 
+          entry.id === editingEntry.id 
+            ? { ...entry, ...entryData }
+            : entry
+        )
+      );
+    } else {
+      // Add new entry
+      const newEntry: MoodEntry = {
+        ...entryData,
+        id: crypto.randomUUID(),
+      };
+      setMoodEntries([...moodEntries, newEntry]);
+    }
+    setShowMoodForm(false);
+    setEditingEntry(null);
+  };
+
+  const deleteMoodEntry = (entryId: string) => {
+    if (confirm('Are you sure you want to delete this mood entry?')) {
+      setMoodEntries(entries => entries.filter(entry => entry.id !== entryId));
     }
   };
 
@@ -75,7 +105,6 @@ const MoodTab = () => {
     const chartData = [];
     
     if (viewPeriod === 'day') {
-      // Group by hour for day view
       const hourlyData: { [key: string]: { total: number; count: number } } = {};
       
       filtered.forEach(entry => {
@@ -94,7 +123,6 @@ const MoodTab = () => {
         });
       });
     } else {
-      // Group by day for week/month view
       const dailyData: { [key: string]: { total: number; count: number } } = {};
       
       filtered.forEach(entry => {
@@ -131,17 +159,17 @@ const MoodTab = () => {
     return moodEntries.filter(entry => {
       const entryDate = new Date(entry.date);
       return entryDate >= today && entryDate <= tomorrow;
-    });
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   return (
     <div className="space-y-6">
-      {/* Mood Input Section */}
-      <Card className="bg-gradient-to-br from-pink-600/20 to-purple-600/20 border-pink-500/30">
+      {/* Quick Mood Input */}
+      <Card className="bg-gradient-to-br from-pink-600/20 to-purple-600/20 border-pink-500/30 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Heart className="w-5 h-5 text-pink-400" />
-            How are you feeling right now?
+            Quick Mood Check
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -165,31 +193,41 @@ const MoodTab = () => {
           <Textarea
             value={moodNote}
             onChange={(e) => setMoodNote(e.target.value)}
-            placeholder="How was your day? What made you feel this way? (optional)"
+            placeholder="Quick note about your mood (optional)"
             className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
           />
           
-          <Button
-            onClick={addMoodEntry}
-            disabled={!selectedMood}
-            className="w-full bg-pink-600 hover:bg-pink-700 disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Record Mood
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={addMoodEntry}
+              disabled={!selectedMood}
+              className="flex-1 bg-pink-600 hover:bg-pink-700 disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Quick Add
+            </Button>
+            <Button
+              onClick={() => setShowMoodForm(true)}
+              variant="outline"
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Detailed Entry
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       {/* Today's Entries */}
       {getTodayEntries().length > 0 && (
-        <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
+        <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
           <CardHeader>
             <CardTitle className="text-white">Today's Mood Entries</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {getTodayEntries().map(entry => (
-                <div key={entry.id} className="flex items-start gap-3 p-3 bg-slate-700/30 rounded-lg">
+                <div key={entry.id} className="flex items-start gap-3 p-3 bg-slate-700/30 rounded-lg group">
                   <span className="text-2xl">{entry.emoji}</span>
                   <div className="flex-1">
                     <div className="text-white font-medium">
@@ -202,6 +240,27 @@ const MoodTab = () => {
                       <p className="text-sm text-slate-300 mt-2">{entry.note}</p>
                     )}
                   </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingEntry(entry);
+                        setShowMoodForm(true);
+                      }}
+                      className="h-8 w-8 p-0 hover:bg-slate-600"
+                    >
+                      <Edit className="w-3 h-3 text-slate-400" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => deleteMoodEntry(entry.id)}
+                      className="h-8 w-8 p-0 hover:bg-red-600"
+                    >
+                      <Trash2 className="w-3 h-3 text-red-400" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -210,7 +269,7 @@ const MoodTab = () => {
       )}
 
       {/* Mood Analytics */}
-      <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
+      <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="text-white flex items-center gap-2">
@@ -303,6 +362,18 @@ const MoodTab = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Mood Entry Form Modal */}
+      {showMoodForm && (
+        <MoodEntryForm
+          entry={editingEntry || undefined}
+          onSave={saveMoodEntry}
+          onCancel={() => {
+            setShowMoodForm(false);
+            setEditingEntry(null);
+          }}
+        />
+      )}
     </div>
   );
 };

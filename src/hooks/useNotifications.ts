@@ -1,46 +1,53 @@
 
 import { useEffect } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Capacitor } from '@capacitor/core';
+import { useLocalStorage } from './useLocalStorage';
+import { AppSettings } from '@/types';
 
 export const useNotifications = () => {
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      LocalNotifications.requestPermissions();
-    }
-  }, []);
+  const [settings] = useLocalStorage<AppSettings>('appSettings', {
+    theme: 'dark',
+    notifications: true,
+    soundEnabled: true,
+  });
 
-  const scheduleNotification = async (id: number, title: string, body: string, date: Date) => {
-    if (Capacitor.isNativePlatform()) {
+  useEffect(() => {
+    if (settings.notifications) {
+      requestPermissions();
+    }
+  }, [settings.notifications]);
+
+  const requestPermissions = async () => {
+    try {
+      const permission = await LocalNotifications.requestPermissions();
+      console.log('Notification permission:', permission);
+    } catch (error) {
+      console.error('Error requesting notification permissions:', error);
+    }
+  };
+
+  const scheduleNotification = async (title: string, body: string, scheduleAt: Date) => {
+    if (!settings.notifications) return;
+
+    try {
       await LocalNotifications.schedule({
         notifications: [
           {
             title,
             body,
-            id,
-            schedule: { at: date },
-            sound: 'beep.wav',
-            attachments: [],
-            actionTypeId: '',
-            extra: null
+            id: Date.now(),
+            schedule: { at: scheduleAt },
+            sound: settings.soundEnabled ? 'default' : undefined,
           }
         ]
       });
-    } else {
-      // Web notification fallback
-      if ('Notification' in window && Notification.permission === 'granted') {
-        setTimeout(() => {
-          new Notification(title, { body });
-        }, date.getTime() - Date.now());
-      }
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
     }
   };
 
-  const cancelNotification = async (id: number) => {
-    if (Capacitor.isNativePlatform()) {
-      await LocalNotifications.cancel({ notifications: [{ id: id.toString() }] });
-    }
+  return {
+    scheduleNotification,
+    requestPermissions,
   };
-
-  return { scheduleNotification, cancelNotification };
 };

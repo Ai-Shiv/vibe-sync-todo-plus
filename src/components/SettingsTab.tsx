@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +34,11 @@ const SettingsTab = () => {
 
   const updateSetting = (key: keyof AppSettings, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    
+    // Apply theme changes to document
+    if (key === 'theme') {
+      document.documentElement.classList.toggle('dark', value === 'dark');
+    }
   };
 
   const exportData = async (format: 'json' | 'yaml' | 'zip') => {
@@ -56,7 +60,6 @@ const SettingsTab = () => {
         break;
 
       case 'yaml':
-        // Convert to YAML format
         const yamlContent = convertToYAML(data);
         const yamlBlob = new Blob([yamlContent], { type: 'text/yaml' });
         saveAs(yamlBlob, `lifesync-backup-${new Date().toISOString().split('T')[0]}.yaml`);
@@ -65,16 +68,12 @@ const SettingsTab = () => {
       case 'zip':
         const zip = new JSZip();
         
-        // Add JSON export
         zip.file('backup.json', JSON.stringify(data, null, 2));
-        
-        // Add individual data files
         zip.file('tasks.json', JSON.stringify(tasks, null, 2));
         zip.file('mood-entries.json', JSON.stringify(moodEntries, null, 2));
         zip.file('journal-entries.json', JSON.stringify(journalEntries, null, 2));
         zip.file('settings.json', JSON.stringify(settings, null, 2));
         
-        // Add markdown exports for journals
         if (journalEntries.length > 0) {
           const journalFolder = zip.folder('journal-markdown');
           journalEntries.forEach((entry: any) => {
@@ -126,7 +125,6 @@ const SettingsTab = () => {
           try {
             const data = JSON.parse(e.target?.result as string);
             
-            // Import data with confirmation
             if (confirm('This will replace all current data. Are you sure?')) {
               if (data.tasks) localStorage.setItem('tasks', JSON.stringify(data.tasks));
               if (data.moodEntries) localStorage.setItem('moodEntries', JSON.stringify(data.moodEntries));
@@ -160,7 +158,7 @@ const SettingsTab = () => {
   return (
     <div className="space-y-6">
       {/* App Settings */}
-      <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
+      <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Settings className="w-5 h-5 text-slate-400" />
@@ -168,7 +166,6 @@ const SettingsTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Theme Settings */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {settings.theme === 'dark' ? (
@@ -189,7 +186,6 @@ const SettingsTab = () => {
             />
           </div>
 
-          {/* Notifications */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Bell className="w-5 h-5 text-orange-400" />
@@ -206,7 +202,6 @@ const SettingsTab = () => {
             />
           </div>
 
-          {/* Sound */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Volume2 className="w-5 h-5 text-green-400" />
@@ -226,7 +221,7 @@ const SettingsTab = () => {
       </Card>
 
       {/* Mobile Features */}
-      <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
+      <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Smartphone className="w-5 h-5 text-purple-400" />
@@ -262,7 +257,7 @@ const SettingsTab = () => {
       </Card>
 
       {/* Data Management */}
-      <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
+      <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Database className="w-5 h-5 text-blue-400" />
@@ -270,7 +265,6 @@ const SettingsTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Data Statistics */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="bg-slate-700/30 p-3 rounded-lg text-center">
               <div className="text-xl font-bold text-blue-400">{tasks.length}</div>
@@ -286,7 +280,6 @@ const SettingsTab = () => {
             </div>
           </div>
 
-          {/* Export Options */}
           <div>
             <h4 className="text-white font-medium mb-3">Export Data</h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -317,7 +310,6 @@ const SettingsTab = () => {
             </div>
           </div>
 
-          {/* Import/Clear Options */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-700">
             <Button
               onClick={importData}
@@ -339,7 +331,7 @@ const SettingsTab = () => {
       </Card>
 
       {/* About */}
-      <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
+      <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
         <CardHeader>
           <CardTitle className="text-white">About LifeSync Pro</CardTitle>
         </CardHeader>
