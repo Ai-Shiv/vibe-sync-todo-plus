@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -14,23 +14,43 @@ import {
   Database,
   FileJson,
   FileType,
-  Archive
+  Archive,
+  Palette,
+  TestTube
 } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { AppSettings } from '@/types';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
+import ThemeCustomizer from './ThemeCustomizer';
+import { applyTheme, getStoredTheme } from '@/utils/themeManager';
 
 const SettingsTab = () => {
   const [settings, setSettings] = useLocalStorage<AppSettings>('appSettings', {
     theme: 'dark',
     notifications: true,
     soundEnabled: true,
+    defaultAlarmSound: 'default',
+    snoozeMinutes: 5,
+    workingHours: {
+      start: '09:00',
+      end: '17:00',
+      daysOfWeek: [1, 2, 3, 4, 5]
+    },
+    autoSave: true,
+    backupFrequency: 'weekly',
+    layoutPreferences: {
+      sidebarCollapsed: false,
+      compactMode: false,
+      showCompletedTasks: true
+    }
   });
 
   const [tasks] = useLocalStorage('tasks', []);
   const [moodEntries] = useLocalStorage('moodEntries', []);
   const [journalEntries] = useLocalStorage('journalEntries', []);
+  const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
+  const [showTestData, setShowTestData] = useState(false);
 
   const updateSetting = (key: keyof AppSettings, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -39,6 +59,62 @@ const SettingsTab = () => {
     if (key === 'theme') {
       document.documentElement.classList.toggle('dark', value === 'dark');
     }
+  };
+
+  const generateTestData = () => {
+    if (!showTestData) return;
+
+    // Generate test tasks
+    const testTasks = Array.from({ length: 10 }, (_, i) => ({
+      id: `test-task-${i}`,
+      title: `Test Task ${i + 1}`,
+      description: `This is a test task for demonstration purposes ${i + 1}`,
+      completed: Math.random() > 0.5,
+      priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
+      category: ['Work', 'Personal', 'Health', 'Learning'][Math.floor(Math.random() * 4)],
+      dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
+      updatedAt: new Date(),
+      alarms: [],
+      tags: [`tag${i}`, 'test'],
+      timerDuration: Math.floor(Math.random() * 120) + 15,
+      timeSpent: Math.floor(Math.random() * 60),
+      dependencies: [],
+      subtasks: []
+    }));
+
+    // Generate test mood entries
+    const testMoodEntries = Array.from({ length: 20 }, (_, i) => ({
+      id: `test-mood-${i}`,
+      date: new Date(Date.now() - i * 24 * 60 * 60 * 1000),
+      mood: Math.floor(Math.random() * 5) + 1,
+      emoji: ['😢', '😔', '😐', '😊', '😄'][Math.floor(Math.random() * 5)],
+      note: `Test mood entry ${i + 1} - feeling good about progress!`
+    }));
+
+    // Generate test journal entries
+    const testJournalEntries = Array.from({ length: 5 }, (_, i) => ({
+      id: `test-journal-${i}`,
+      title: `Test Journal Entry ${i + 1}`,
+      content: `This is a test journal entry ${i + 1}. It contains some sample content to demonstrate the journal functionality. Today was a productive day and I learned many new things.`,
+      createdAt: new Date(Date.now() - i * 3 * 24 * 60 * 60 * 1000),
+      updatedAt: new Date(Date.now() - i * 3 * 24 * 60 * 60 * 1000),
+      tags: [`journal-tag-${i}`, 'test'],
+      pinned: Math.random() > 0.7,
+      wordCount: 50 + Math.floor(Math.random() * 200),
+      readTime: Math.ceil((50 + Math.floor(Math.random() * 200)) / 200)
+    }));
+
+    // Save test data
+    const existingTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    const existingMoods = JSON.parse(localStorage.getItem('moodEntries') || '[]');
+    const existingJournals = JSON.parse(localStorage.getItem('journalEntries') || '[]');
+
+    localStorage.setItem('tasks', JSON.stringify([...existingTasks, ...testTasks]));
+    localStorage.setItem('moodEntries', JSON.stringify([...existingMoods, ...testMoodEntries]));
+    localStorage.setItem('journalEntries', JSON.stringify([...existingJournals, ...testJournalEntries]));
+
+    alert('Test data generated! Please refresh the page to see the changes.');
   };
 
   const exportData = async (format: 'json' | 'yaml' | 'zip') => {
@@ -220,6 +296,72 @@ const SettingsTab = () => {
         </CardContent>
       </Card>
 
+      {/* Theme Customization */}
+      <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Palette className="w-5 h-5 text-purple-400" />
+            Advanced Theming
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 p-4 rounded-lg border border-purple-500/30">
+            <h4 className="text-white font-medium mb-2">Custom Themes</h4>
+            <p className="text-slate-300 text-sm mb-3">
+              Create your own color schemes and gradients to personalize your experience.
+            </p>
+            <Button
+              onClick={() => setShowThemeCustomizer(true)}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Palette className="w-4 h-4 mr-2" />
+              Open Theme Customizer
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Developer Tools */}
+      <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <TestTube className="w-5 h-5 text-cyan-400" />
+            Developer Tools
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <TestTube className="w-5 h-5 text-cyan-400" />
+              <div>
+                <div className="text-white font-medium">Generate Test Data</div>
+                <div className="text-sm text-slate-400">
+                  Add sample tasks, mood entries, and journal entries for testing
+                </div>
+              </div>
+            </div>
+            <Switch
+              checked={showTestData}
+              onCheckedChange={setShowTestData}
+            />
+          </div>
+          
+          {showTestData && (
+            <div className="bg-cyan-950/50 p-4 rounded-lg border border-cyan-500/30">
+              <p className="text-cyan-200 text-sm mb-3">
+                This will generate sample data including tasks, mood entries, and journal entries.
+              </p>
+              <Button
+                onClick={generateTestData}
+                className="bg-cyan-600 hover:bg-cyan-700"
+              >
+                Generate Test Data
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Mobile Features */}
       <Card className="bg-slate-800/70 backdrop-blur-sm border-slate-600">
         <CardHeader>
@@ -338,13 +480,18 @@ const SettingsTab = () => {
         <CardContent>
           <div className="text-slate-300 space-y-2 text-sm">
             <p>A comprehensive productivity and wellness companion designed for offline use.</p>
-            <p><strong>Version:</strong> 1.0.0</p>
-            <p><strong>Features:</strong> Task Management, Mood Tracking, Journaling, Mobile Support</p>
+            <p><strong>Version:</strong> 2.0.0</p>
+            <p><strong>Features:</strong> Task Management, Mood Tracking, Journaling, Natural Language Input, Advanced Theming</p>
             <p><strong>Data Storage:</strong> 100% Local (No Internet Required)</p>
             <p><strong>Mobile:</strong> Capacitor-powered native capabilities</p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Theme Customizer Modal */}
+      {showThemeCustomizer && (
+        <ThemeCustomizer onClose={() => setShowThemeCustomizer(false)} />
+      )}
     </div>
   );
 };

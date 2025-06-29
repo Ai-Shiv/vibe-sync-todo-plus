@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Filter, Clock, Bell, Calendar as CalendarIcon, CheckSquare } from 'lucide-react';
+import { Plus, Search, Filter, Clock, Bell, Calendar as CalendarIcon, CheckSquare, Sparkles } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Task } from '@/types';
 import TaskForm from './TaskForm';
 import TaskItem from './TaskItem';
+import NaturalLanguageInput from './NaturalLanguageInput';
+import DirectEditModal from './DirectEditModal';
 
 const TasksTab = () => {
   const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', []);
@@ -16,6 +18,8 @@ const TasksTab = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [directEditTask, setDirectEditTask] = useState<Task | null>(null);
+  const [showNaturalInput, setShowNaturalInput] = useState(false);
 
   const categories = ['all', ...Array.from(new Set(tasks.map(task => task.category).filter(Boolean)))];
   
@@ -36,9 +40,19 @@ const TasksTab = () => {
       id: crypto.randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
+      dependencies: [],
+      subtasks: []
     };
     setTasks([...tasks, newTask]);
     setShowTaskForm(false);
+  };
+
+  const createTaskFromNL = (taskData: any) => {
+    addTask({
+      ...taskData,
+      alarms: [],
+      tags: taskData.tags || []
+    });
   };
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
@@ -53,8 +67,28 @@ const TasksTab = () => {
     setTasks(tasks.filter(task => task.id !== taskId));
   };
 
+  const handleTaskClick = (task: Task) => {
+    setDirectEditTask(task);
+  };
+
+  const handleDirectEditSave = (updates: Partial<Task>) => {
+    if (directEditTask) {
+      updateTask(directEditTask.id, updates);
+      setDirectEditTask(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Natural Language Input */}
+      {showNaturalInput && (
+        <NaturalLanguageInput
+          onTaskCreate={createTaskFromNL}
+          onMoodCreate={() => {}}
+          onJournalCreate={() => {}}
+        />
+      )}
+
       {/* Header with Search and Filters */}
       <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
         <CardContent className="p-4">
@@ -80,6 +114,14 @@ const TasksTab = () => {
                   </option>
                 ))}
               </select>
+              <Button
+                onClick={() => setShowNaturalInput(!showNaturalInput)}
+                variant="outline"
+                className={`border-slate-600 ${showNaturalInput ? 'bg-blue-600 text-white' : 'text-slate-300'}`}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Smart Add
+              </Button>
               <Button
                 onClick={() => setShowTaskForm(true)}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -133,16 +175,17 @@ const TasksTab = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {pendingTasks.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onUpdate={updateTask}
-                onDelete={deleteTask}
-                onEdit={(task) => {
-                  setEditingTask(task);
-                  setShowTaskForm(true);
-                }}
-              />
+              <div key={task.id} onClick={() => handleTaskClick(task)} className="cursor-pointer">
+                <TaskItem
+                  task={task}
+                  onUpdate={updateTask}
+                  onDelete={deleteTask}
+                  onEdit={(task) => {
+                    setEditingTask(task);
+                    setShowTaskForm(true);
+                  }}
+                />
+              </div>
             ))}
           </CardContent>
         </Card>
@@ -159,16 +202,17 @@ const TasksTab = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {completedTasks.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onUpdate={updateTask}
-                onDelete={deleteTask}
-                onEdit={(task) => {
-                  setEditingTask(task);
-                  setShowTaskForm(true);
-                }}
-              />
+              <div key={task.id} onClick={() => handleTaskClick(task)} className="cursor-pointer">
+                <TaskItem
+                  task={task}
+                  onUpdate={updateTask}
+                  onDelete={deleteTask}
+                  onEdit={(task) => {
+                    setEditingTask(task);
+                    setShowTaskForm(true);
+                  }}
+                />
+              </div>
             ))}
           </CardContent>
         </Card>
@@ -189,6 +233,16 @@ const TasksTab = () => {
             setShowTaskForm(false);
             setEditingTask(null);
           }}
+        />
+      )}
+
+      {/* Direct Edit Modal */}
+      {directEditTask && (
+        <DirectEditModal
+          type="task"
+          item={directEditTask}
+          onSave={handleDirectEditSave}
+          onCancel={() => setDirectEditTask(null)}
         />
       )}
     </div>

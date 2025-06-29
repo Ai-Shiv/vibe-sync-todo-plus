@@ -6,10 +6,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from 'date-fns';
-import { Calendar as CalendarIcon, TrendingUp, Heart, Plus, Edit, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, TrendingUp, Heart, Plus, Edit, Trash2, Sparkles } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { MoodEntry } from '@/types';
 import MoodEntryForm from './MoodEntryForm';
+import NaturalLanguageInput from './NaturalLanguageInput';
+import DirectEditModal from './DirectEditModal';
 
 const moodEmojis = [
   { value: 1, emoji: '😢', label: 'Very Sad' },
@@ -27,6 +29,8 @@ const MoodTab = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showMoodForm, setShowMoodForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<MoodEntry | null>(null);
+  const [showNaturalInput, setShowNaturalInput] = useState(false);
+  const [directEditEntry, setDirectEditEntry] = useState<MoodEntry | null>(null);
 
   const addMoodEntry = () => {
     if (selectedMood) {
@@ -41,6 +45,14 @@ const MoodTab = () => {
       setSelectedMood(null);
       setMoodNote('');
     }
+  };
+
+  const createMoodFromNL = (moodData: any) => {
+    const newEntry: MoodEntry = {
+      ...moodData,
+      id: crypto.randomUUID(),
+    };
+    setMoodEntries([...moodEntries, newEntry]);
   };
 
   const saveMoodEntry = (entryData: Omit<MoodEntry, 'id'>) => {
@@ -68,6 +80,23 @@ const MoodTab = () => {
   const deleteMoodEntry = (entryId: string) => {
     if (confirm('Are you sure you want to delete this mood entry?')) {
       setMoodEntries(entries => entries.filter(entry => entry.id !== entryId));
+    }
+  };
+
+  const handleEntryClick = (entry: MoodEntry) => {
+    setDirectEditEntry(entry);
+  };
+
+  const handleDirectEditSave = (updates: Partial<MoodEntry>) => {
+    if (directEditEntry) {
+      setMoodEntries(entries => 
+        entries.map(entry => 
+          entry.id === directEditEntry.id 
+            ? { ...entry, ...updates }
+            : entry
+        )
+      );
+      setDirectEditEntry(null);
     }
   };
 
@@ -164,13 +193,33 @@ const MoodTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Natural Language Input */}
+      {showNaturalInput && (
+        <NaturalLanguageInput
+          onTaskCreate={() => {}}
+          onMoodCreate={createMoodFromNL}
+          onJournalCreate={() => {}}
+        />
+      )}
+
       {/* Quick Mood Input */}
       <Card className="bg-gradient-to-br from-pink-600/20 to-purple-600/20 border-pink-500/30 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Heart className="w-5 h-5 text-pink-400" />
-            Quick Mood Check
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Heart className="w-5 h-5 text-pink-400" />
+              Quick Mood Check
+            </CardTitle>
+            <Button
+              onClick={() => setShowNaturalInput(!showNaturalInput)}
+              variant="outline"
+              size="sm"
+              className={`border-pink-500/30 ${showNaturalInput ? 'bg-pink-600 text-white' : 'text-pink-300'}`}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Smart Add
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex justify-center gap-3">
@@ -227,7 +276,11 @@ const MoodTab = () => {
           <CardContent>
             <div className="space-y-3">
               {getTodayEntries().map(entry => (
-                <div key={entry.id} className="flex items-start gap-3 p-3 bg-slate-700/30 rounded-lg group">
+                <div 
+                  key={entry.id} 
+                  onClick={() => handleEntryClick(entry)}
+                  className="flex items-start gap-3 p-3 bg-slate-700/30 rounded-lg group hover:bg-slate-700/50 cursor-pointer transition-colors"
+                >
                   <span className="text-2xl">{entry.emoji}</span>
                   <div className="flex-1">
                     <div className="text-white font-medium">
@@ -244,7 +297,8 @@ const MoodTab = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingEntry(entry);
                         setShowMoodForm(true);
                       }}
@@ -255,7 +309,10 @@ const MoodTab = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => deleteMoodEntry(entry.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMoodEntry(entry.id);
+                      }}
                       className="h-8 w-8 p-0 hover:bg-red-600"
                     >
                       <Trash2 className="w-3 h-3 text-red-400" />
@@ -372,6 +429,16 @@ const MoodTab = () => {
             setShowMoodForm(false);
             setEditingEntry(null);
           }}
+        />
+      )}
+
+      {/* Direct Edit Modal */}
+      {directEditEntry && (
+        <DirectEditModal
+          type="mood"
+          item={directEditEntry}
+          onSave={handleDirectEditSave}
+          onCancel={() => setDirectEditEntry(null)}
         />
       )}
     </div>
