@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Filter, Clock, Bell, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Search, Filter, Clock, Bell, Calendar as CalendarIcon, CheckSquare } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Task } from '@/types';
 import TaskForm from './TaskForm';

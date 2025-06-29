@@ -14,7 +14,7 @@ import {
   Calendar as CalendarIcon,
   FileText 
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format as formatDate } from 'date-fns';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { JournalEntry } from '@/types';
 import JournalEditor from './JournalEditor';
@@ -60,15 +60,15 @@ const JournalTab = () => {
     setJournalEntries(entries => entries.filter(entry => entry.id !== entryId));
   };
 
-  const exportEntry = async (entry: JournalEntry, format: 'markdown' | 'html' | 'txt') => {
+  const exportEntry = async (entry: JournalEntry, exportFormat: 'markdown' | 'html' | 'txt') => {
     let content = '';
     let filename = '';
 
-    switch (format) {
+    switch (exportFormat) {
       case 'markdown':
         content = `# ${entry.title}\n\n`;
-        content += `**Created:** ${format(new Date(entry.createdAt), 'PPP')}\n`;
-        content += `**Updated:** ${format(new Date(entry.updatedAt), 'PPP')}\n`;
+        content += `**Created:** ${formatDate(new Date(entry.createdAt), 'PPP')}\n`;
+        content += `**Updated:** ${formatDate(new Date(entry.updatedAt), 'PPP')}\n`;
         if (entry.tags.length > 0) {
           content += `**Tags:** ${entry.tags.map(tag => `#${tag}`).join(', ')}\n`;
         }
@@ -91,8 +91,8 @@ const JournalTab = () => {
 <body>
     <h1>${entry.title}</h1>
     <div class="meta">
-        <p><strong>Created:</strong> ${format(new Date(entry.createdAt), 'PPP')}</p>
-        <p><strong>Updated:</strong> ${format(new Date(entry.updatedAt), 'PPP')}</p>
+        <p><strong>Created:</strong> ${formatDate(new Date(entry.createdAt), 'PPP')}</p>
+        <p><strong>Updated:</strong> ${formatDate(new Date(entry.updatedAt), 'PPP')}</p>
         ${entry.tags.length > 0 ? `<div class="tags">${entry.tags.map(tag => `<span class="tag">#${tag}</span>`).join('')}</div>` : ''}
     </div>
     <hr>
@@ -104,8 +104,8 @@ const JournalTab = () => {
       case 'txt':
         content = `${entry.title}\n`;
         content += `${'='.repeat(entry.title.length)}\n\n`;
-        content += `Created: ${format(new Date(entry.createdAt), 'PPP')}\n`;
-        content += `Updated: ${format(new Date(entry.updatedAt), 'PPP')}\n`;
+        content += `Created: ${formatDate(new Date(entry.createdAt), 'PPP')}\n`;
+        content += `Updated: ${formatDate(new Date(entry.updatedAt), 'PPP')}\n`;
         if (entry.tags.length > 0) {
           content += `Tags: ${entry.tags.map(tag => `#${tag}`).join(', ')}\n`;
         }
@@ -132,8 +132,8 @@ const JournalTab = () => {
       
       // Markdown
       let content = `# ${entry.title}\n\n`;
-      content += `**Created:** ${format(new Date(entry.createdAt), 'PPP')}\n`;
-      content += `**Updated:** ${format(new Date(entry.updatedAt), 'PPP')}\n`;
+      content += `**Created:** ${formatDate(new Date(entry.createdAt), 'PPP')}\n`;
+      content += `**Updated:** ${formatDate(new Date(entry.updatedAt), 'PPP')}\n`;
       if (entry.tags.length > 0) {
         content += `**Tags:** ${entry.tags.map(tag => `#${tag}`).join(', ')}\n`;
       }
@@ -156,8 +156,8 @@ const JournalTab = () => {
 <body>
     <h1>${entry.title}</h1>
     <div class="meta">
-        <p><strong>Created:</strong> ${format(new Date(entry.createdAt), 'PPP')}</p>
-        <p><strong>Updated:</strong> ${format(new Date(entry.updatedAt), 'PPP')}</p>
+        <p><strong>Created:</strong> ${formatDate(new Date(entry.createdAt), 'PPP')}</p>
+        <p><strong>Updated:</strong> ${formatDate(new Date(entry.updatedAt), 'PPP')}</p>
         ${entry.tags.length > 0 ? `<div class="tags">${entry.tags.map(tag => `<span class="tag">#${tag}</span>`).join('')}</div>` : ''}
     </div>
     <hr>
@@ -169,8 +169,8 @@ const JournalTab = () => {
       // Plain text
       let txtContent = `${entry.title}\n`;
       txtContent += `${'='.repeat(entry.title.length)}\n\n`;
-      txtContent += `Created: ${format(new Date(entry.createdAt), 'PPP')}\n`;
-      txtContent += `Updated: ${format(new Date(entry.updatedAt), 'PPP')}\n`;
+      txtContent += `Created: ${formatDate(new Date(entry.createdAt), 'PPP')}\n`;
+      txtContent += `Updated: ${formatDate(new Date(entry.updatedAt), 'PPP')}\n`;
       if (entry.tags.length > 0) {
         txtContent += `Tags: ${entry.tags.map(tag => `#${tag}`).join(', ')}\n`;
       }
@@ -260,12 +260,12 @@ const JournalTab = () => {
                     <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
                       <div className="flex items-center gap-1">
                         <CalendarIcon className="w-3 h-3" />
-                        <span>{format(new Date(entry.createdAt), 'MMM d, yyyy')}</span>
+                        <span>{formatDate(new Date(entry.createdAt), 'MMM d, yyyy')}</span>
                       </div>
                       {entry.updatedAt !== entry.createdAt && (
                         <div className="flex items-center gap-1">
                           <Edit className="w-3 h-3" />
-                          <span>Updated {format(new Date(entry.updatedAt), 'MMM d, yyyy')}</span>
+                          <span>Updated {formatDate(new Date(entry.updatedAt), 'MMM d, yyyy')}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1">
